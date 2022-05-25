@@ -7,11 +7,12 @@ import traceback
 import sys
 import logpublisher
 from dnslib import *
+import load_zones
+import zone_monitor
+
+load_zones.init()
 
 logger = logpublisher.logger()
-
-with open("zones/yogeshsharma.me.json", 'r') as file:
-    zone_info = json.load(file)
 
 
 def add_soa_records(reply: DNSRecord, record: dict):
@@ -27,7 +28,7 @@ def add_soa_records(reply: DNSRecord, record: dict):
     reply.add_auth(*RR.fromZone(f"{mname} {ttl} IN SOA {mname} {mail_addr} {serial} {refresh} {retry} {expire} {minimum}"))
 
 
-def filter_records(qtype, record_name):
+def filter_records(qtype, record_name, zone_info):
     logger.debug(f"Filtering records for {qtype} {record_name}")
     available_records = zone_info[str(qtype).lower()]
     answer_records = list(filter(lambda d: d['name'] == record_name, available_records))
@@ -35,6 +36,7 @@ def filter_records(qtype, record_name):
 
 
 def dns_response(data):
+    zone_info = load_zones.zone_info
     request = DNSRecord.parse(data)
 
     logger.info(f'----> QUESTIONS: {request.questions}')
@@ -45,7 +47,7 @@ def dns_response(data):
     q_type = request.q.qtype
     qt_class = QTYPE[q_type]
 
-    answer_records = filter_records(qtype=qt_class, record_name=qn)
+    answer_records = filter_records(qtype=qt_class, record_name=qn, zone_info=zone_info)
     cname_response = None
     for records in answer_records:
         reply.add_answer(RR(rname=qname, rtype=getattr(QTYPE, qt_class), rclass=1, ttl=records.get("ttl", 300),
@@ -56,9 +58,12 @@ def dns_response(data):
                 cname_response = f"{cname_response}."
 
     if cname_response:
-        answer_records = filter_records(qtype="A", record_name=cname_response)
-        for record in answer_records:
-            reply.add_answer(RR(rname=cname_response, rtype=QTYPE.A, rclass=1, ttl=300, rdata=A(record['value'])))
+        answer_records = filter_records(qtype="A", record_name=cname_response, zone_info=zone_info)
+        if answer_records:
+            for record in answer_records:
+                reply.add_answer(RR(rname=cname_response, rtype=QTYPE.A, rclass=1, ttl=300, rdata=A(record['value'])))
+        else:
+            logger.debug(f"No record found for {cname_response} as authoritative server.")
 
     add_soa_records(reply, zone_info['soa'])
     logger.debug(f"---->ANSWERS:\n{reply}")
@@ -107,6 +112,11 @@ def main():
         thread.start()
         logger.info(f"{s.RequestHandlerClass.__name__[:3]} server loop running in thread: {thread.name}")
 
+    # Start Zone Monitor
+    thread = threading.Thread(target=zone_monitor.monitor)
+    thread.start()
+    logger.info(f"Zone Monitor started in thread: {thread.name}")
+
     try:
         while 1:
             time.sleep(1)
@@ -118,6 +128,7 @@ def main():
     finally:
         for s in servers:
             s.shutdown()
+        thread.join()
 
 
 if __name__ == '__main__':

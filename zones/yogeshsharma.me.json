@@ -22,7 +22,7 @@
     {
       "name": "yogeshsharma.me.",
       "ttl": 60,
-      "value": "1.2.3.4"
+      "value": "1.2.3.10"
     },
     {
       "name": "yogeshsharma.me.",
@@ -60,6 +60,11 @@
       "name": "linkedin.yogeshsharma.me.",
       "ttl": 60,
       "value": "yogeshsharma.me"
+    },
+    {
+      "name": "blog.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "google.com"
     }
   ]
 }
