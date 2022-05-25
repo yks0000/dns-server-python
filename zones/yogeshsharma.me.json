@@ -1,0 +1,65 @@
+{
+  "$origin": "yogeshsharma.me",
+  "$ttl": 300,
+  "soa": {
+    "mname": "yogeshsharma.me",
+    "rname": "root.yogeshsharma.me",
+    "serial": 2040505659,
+    "refresh": 3600,
+    "retry": 600,
+    "expire": 604800,
+    "minimum": 86400
+  },
+  "ns": [
+    {
+      "host": "nelly.ns.cloudflare.com"
+    },
+    {
+      "host": "simon.ns.cloudflare.com"
+    }
+  ],
+  "a": [
+    {
+      "name": "yogeshsharma.me.",
+      "ttl": 60,
+      "value": "1.2.3.4"
+    },
+    {
+      "name": "yogeshsharma.me.",
+      "ttl": 60,
+      "value": "5.6.7.8"
+    },
+    {
+      "name": "resume.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "185.199.111.153"
+    },
+    {
+      "name": "resume.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "185.199.110.153"
+    },
+    {
+      "name": "resume.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "185.199.109.153"
+    },
+    {
+      "name": "resume.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "185.199.108.153"
+    },
+    {
+      "name": "dns.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "8.8.8.8"
+    }
+  ],
+  "cname": [
+    {
+      "name": "linkedin.yogeshsharma.me.",
+      "ttl": 60,
+      "value": "yogeshsharma.me"
+    }
+  ]
+}
