@@ -4,7 +4,7 @@ logger_level = logging.DEBUG
 
 
 def logger(logger_name="reports"):
-    log_format = "%(asctime)s api=%(name)s.%(funcName)s [level=%(levelname)-7s]: %(message)s"
+    log_format = "%(asctime)s api=%(name)s.%(funcName)s %(threadName)s [level=%(levelname)-7s]: %(message)s"
 
     _logger = logging.getLogger(logger_name)
     _logger.propagate = False
