@@ -1,9 +1,9 @@
 {
-  "$origin": "yogeshsharma.me",
+  "$origin": "example.com",
   "$ttl": 300,
   "soa": {
-    "mname": "yogeshsharma.me",
-    "rname": "root.yogeshsharma.me",
+    "mname": "example.com",
+    "rname": "root.example.com",
     "serial": 2040505659,
     "refresh": 3600,
     "retry": 600,
@@ -20,51 +20,51 @@
   ],
   "a": [
     {
-      "name": "yogeshsharma.me.",
+      "name": "example.com.",
       "ttl": 60,
       "value": "1.2.3.10"
     },
     {
-      "name": "yogeshsharma.me.",
+      "name": "example.com.",
       "ttl": 60,
       "value": "5.6.7.8"
     },
     {
-      "name": "resume.yogeshsharma.me.",
+      "name": "resume.example.com.",
       "ttl": 60,
       "value": "185.199.111.153"
     },
     {
-      "name": "resume.yogeshsharma.me.",
+      "name": "resume.example.com.",
       "ttl": 60,
       "value": "185.199.110.153"
     },
     {
-      "name": "resume.yogeshsharma.me.",
+      "name": "resume.example.com.",
       "ttl": 60,
       "value": "185.199.109.153"
     },
     {
-      "name": "resume.yogeshsharma.me.",
+      "name": "resume.example.com.",
       "ttl": 60,
       "value": "185.199.108.153"
     },
     {
-      "name": "dns.yogeshsharma.me.",
+      "name": "dns.example.com.",
       "ttl": 60,
       "value": "8.8.8.8"
     }
   ],
   "cname": [
     {
-      "name": "linkedin.yogeshsharma.me.",
+      "name": "linkedin.example.com.",
       "ttl": 60,
-      "value": "yogeshsharma.me"
+      "value": "example.com"
     },
     {
-      "name": "blog.yogeshsharma.me.",
+      "name": "blog.example.com.",
       "ttl": 60,
-      "value": "yks0000.github.io"
+      "value": "github.io"
     }
   ]
 }

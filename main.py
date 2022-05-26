@@ -1,18 +1,18 @@
 import argparse
+import codecs
 import datetime
-import json
+import ipaddress
 import socketserver
+import sys
 import threading
 import traceback
-import sys
-import codecs
-from forwarder import Forwarder
-import ipaddress
 
-import logpublisher
 from dnslib import *
+
 import load_zones
+import logpublisher
 import zone_monitor
+from forwarder import Forwarder
 
 load_zones.init()
 
@@ -22,20 +22,23 @@ logger = logpublisher.logger()
 
 def add_soa_records(reply: DNSRecord, record: dict):
     logger.debug(f"Adding SOA as authoritative record to DNS response for {reply.questions}")
-    reply.add_auth(*RR.fromZone(f"{record['mname']} 600 IN SOA {record['mname']} {record['rname']} "
-                                f"{record['serial']} {record['refresh']} {record['retry']} "
-                                f"{record['expire']} {record['minimum']}"))
+    reply.add_auth(
+        *RR.fromZone(
+            f"{record['mname']} 600 IN SOA {record['mname']} {record['rname']} "
+            f"{record['serial']} {record['refresh']} {record['retry']} "
+            f"{record['expire']} {record['minimum']}"
+        )
+    )
 
 
 def filter_records(qtype, record_name, zone_info):
     logger.debug(f"Filtering records for {qtype} {record_name}")
     available_records = zone_info[str(qtype).lower()]
-    answer_records = list(filter(lambda d: d['name'] == record_name, available_records))
+    answer_records = list(filter(lambda d: d["name"] == record_name, available_records))
     return answer_records
 
 
 class BaseRequestHandler(socketserver.BaseRequestHandler):
-
     def get_data(self):
         raise NotImplementedError
 
@@ -43,7 +46,7 @@ class BaseRequestHandler(socketserver.BaseRequestHandler):
         raise NotImplementedError
 
     def handle(self):
-        now = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
+        now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")
         logger.info(f"{self.__class__.__name__[:3]} request {now} ({self.client_address[0]} {self.client_address[1]}):")
         try:
             data = self.get_data()
@@ -57,51 +60,80 @@ class BaseRequestHandler(socketserver.BaseRequestHandler):
         zone_info = load_zones.zone_info
         request = DNSRecord.parse(data)
 
-        logger.info(f'----> QUESTIONS: {request.questions}')
-        reply = DNSRecord(DNSHeader(id=request.header.id, qr=1, aa=1, ra=1), q=request.q)
+        logger.info(f"----> QUESTIONS: {request.questions}")
+        reply = DNSRecord(
+            DNSHeader(id=request.header.id, qr=1, aa=1, ra=1), q=request.q
+        )
 
         qname = request.q.qname
         qn = str(qname)
         q_type = request.q.qtype
         qt_class = QTYPE[q_type]
 
-        answer_records = filter_records(qtype=qt_class, record_name=qn, zone_info=zone_info)
+        answer_records = filter_records(
+            qtype=qt_class, record_name=qn, zone_info=zone_info
+        )
         cname_response = None
         for records in answer_records:
-            reply.add_answer(RR(rname=qname, rtype=getattr(QTYPE, qt_class), rclass=1, ttl=records.get("ttl", 300),
-                                rdata=getattr(sys.modules[__name__], str(qt_class).upper())(records['value'])))
+            reply.add_answer(
+                RR(
+                    rname=qname,
+                    rtype=getattr(QTYPE, qt_class),
+                    rclass=1,
+                    ttl=records.get("ttl", 300),
+                    rdata=getattr(sys.modules[__name__], str(qt_class).upper())(
+                        records["value"]
+                    ),
+                )
+            )
             if qt_class == "CNAME":
-                cname_response = records['value']
+                cname_response = records["value"]
                 if not str(cname_response).endswith("."):
                     cname_response = f"{cname_response}."
 
         if cname_response:
-            answer_records = filter_records(qtype="A", record_name=cname_response, zone_info=zone_info)
+            answer_records = filter_records(
+                qtype="A", record_name=cname_response, zone_info=zone_info
+            )
             if answer_records:
                 for record in answer_records:
                     reply.add_answer(
-                        RR(rname=cname_response, rtype=QTYPE.A, rclass=1, ttl=300, rdata=A(record['value'])))
+                        RR(
+                            rname=cname_response,
+                            rtype=QTYPE.A,
+                            rclass=1,
+                            ttl=300,
+                            rdata=A(record["value"]),
+                        )
+                    )
             else:
                 logger.debug(f"No record found for {cname_response} as authoritative server. Querying forwarder")
                 answer_records = dns_forwarder.nslookup(cname_response, qtype=QTYPE.A)
                 if answer_records:
-                    logger.debug(f'dns response from forwarder for {cname_response}: {answer_records}')
+                    logger.debug(f"dns response from forwarder for {cname_response}: {answer_records}")
                     for record in answer_records:
-                        reply.add_answer(RR(rname=cname_response, rtype=QTYPE.A, rclass=1, ttl=300, rdata=A(record)))
+                        reply.add_answer(
+                            RR(
+                                rname=cname_response,
+                                rtype=QTYPE.A,
+                                rclass=1,
+                                ttl=300,
+                                rdata=A(record),
+                            )
+                        )
                 else:
-                    logger.debug(f'no dns response from forwarder for {cname_response}')
+                    logger.debug(f"no dns response from forwarder for {cname_response}")
 
-        add_soa_records(reply, zone_info['soa'])
-        short_reply = reply.short().replace('\n', ' ')
+        add_soa_records(reply, zone_info["soa"])
+        short_reply = reply.short().replace("\n", " ")
         logger.debug(f"----> ANSWERS: {short_reply}")
         return reply.pack()
 
 
 class TCPRequestHandler(BaseRequestHandler):
-
     def get_data(self):
         data = self.request.recv(8192)
-        sz = int(codecs.encode(data[:2], 'hex'), 16)
+        sz = int(codecs.encode(data[:2], "hex"), 16)
         if sz < len(data) - 2:
             raise Exception("Wrong size of TCP packet")
         elif sz > len(data) - 2:
@@ -109,12 +141,11 @@ class TCPRequestHandler(BaseRequestHandler):
         return data[2:]
 
     def send_data(self, data):
-        sz = codecs.decode(hex(len(data))[2:].zfill(4), 'hex')
+        sz = codecs.decode(hex(len(data))[2:].zfill(4), "hex")
         return self.request.sendall(sz + data)
 
 
 class UDPRequestHandler(BaseRequestHandler):
-
     def get_data(self):
         return self.request[0]
 
@@ -123,7 +154,6 @@ class UDPRequestHandler(BaseRequestHandler):
 
 
 class StartDNS:
-
     def __init__(self, address: str, port: int):
         # for convenience, we can also use trlib.ipconstants
         self.address = str(ipaddress.ip_address(address))
@@ -137,7 +167,7 @@ class StartDNS:
 
         self.servers = [
             socketserver.ThreadingTCPServer((self.address, self.port), TCPRequestHandler),
-            socketserver.ThreadingUDPServer((self.address, self.port), UDPRequestHandler)
+            socketserver.ThreadingUDPServer((self.address, self.port), UDPRequestHandler),
         ]
         self.start_server()
 
@@ -169,43 +199,13 @@ class StartDNS:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Start a DNS implemented in Python. Usually DNSs use UDP on port 53.')
-    parser.add_argument('--address', default="127.0.0.1", type=str, help='The address to listen on.')
-    parser.add_argument('--port', default=5053, type=int, help='The port to listen on.')
-    # parser.add_argument('--no-udp', action='store_true', default=False, help='Listen to TCP connections.')
+    parser = argparse.ArgumentParser(description="Start a DNS implemented in Python. Usually DNSs use UDP on port 53.")
+    parser.add_argument("--address", default="127.0.0.1", type=str, help="The address to listen on.")
+    parser.add_argument("--port", default=5053, type=int, help="The port to listen on.")
     args = parser.parse_args()
     StartDNS(address=args.address, port=args.port)
-    # logger.info(f"Starting nameserver on port {args.port}. Protocol: {'UDP' if not args.no_udp else 'TCP'}")
-    #
-    # if args.no_udp:
-    #     servers = [socketserver.ThreadingTCPServer(('', args.port), TCPRequestHandler)]
-    # else:
-    #     servers = [socketserver.ThreadingUDPServer(('', args.port), UDPRequestHandler)]
-    #
-    # for s in servers:
-    #     thread = threading.Thread(target=s.serve_forever)  # that thread will start one more thread for each request
-    #     thread.daemon = True  # exit the server thread when the main thread terminates
-    #     thread.start()
-    #     logger.info(f"{s.RequestHandlerClass.__name__[:3]} server loop running in thread: {thread.name}")
-    #
-    # # Start Zone Monitor
-    # thread = threading.Thread(target=zone_monitor.monitor)
-    # thread.start()
-    # logger.info(f"Zone Monitor started in thread: {thread.name}")
-    #
-    # try:
-    #     while 1:
-    #         time.sleep(1)
-    #         sys.stderr.flush()
-    #         sys.stdout.flush()
-    #
-    # except KeyboardInterrupt:
-    #     pass
-    # finally:
-    #     for s in servers:
-    #         s.shutdown()
-    #     thread.join()
 
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

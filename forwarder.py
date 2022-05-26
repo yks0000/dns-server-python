@@ -9,12 +9,13 @@ logger = logpublisher.logger()
 
 
 class Forwarder:
-
     def __init__(self, forwarder: list = None):
         if forwarder is None:
             forwarder = ["8.8.8.8"]
         self.forwarder = forwarder
-        logger.info(f"initializing DNS forwarder for CNAME chasing. Forwarder : {self.forwarder}")
+        logger.info(
+            f"initializing DNS forwarder for CNAME chasing. Forwarder : {self.forwarder}"
+        )
 
     def _get_resolver(self):
         resolver = dns.resolver.Resolver()
@@ -23,7 +24,9 @@ class Forwarder:
         resolver.lifetime = 2
         return resolver
 
-    def nslookup(self, endpoint: str, qtype: Union[int, str, QTYPE.__class__] = QTYPE.A):
+    def nslookup(
+        self, endpoint: str, qtype: Union[int, str, QTYPE.__class__] = QTYPE.A
+    ):
         logger.info(f"dns forward request received for {endpoint}, rtype={qtype}")
         try:
             resolver = self._get_resolver()
