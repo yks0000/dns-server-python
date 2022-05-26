@@ -1,3 +1,10 @@
+## Features
+
+1. Supports both TCP and UDP
+2. Supports both IPv4 and IPv6
+3. Support CNAME Chasing. This help client to make one less DNS call to complete DNS Chain
+4. Supports dynamic reloading of Zone files whenever there is a change
+
 ## Install Package
 
 ```bash
